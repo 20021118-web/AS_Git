@@ -1,6 +1,24 @@
-"=== 1. 서비스 상태 ==="; Get-Service ServerBox-Gateway | Format-List Name,Status
-"=== 2. 80포트 점유자 ==="
-$c = Get-NetTCPConnection -LocalPort 80 -State Listen -ErrorAction SilentlyContinue
-if ($c) { $c | ForEach-Object { (Get-Process -Id $_.OwningProcess).ProcessName + "  (PID " + $_.OwningProcess + ")" } } else { "(80포트를 듣는 프로세스 없음 = Caddy 미기동)" }
-"=== 3. Caddy 에러로그 ==="; Get-Content C:\ServerBox\logs\gateway.err.log -Tail 20 -ErrorAction SilentlyContinue
-"=== 4. localhost 테스트 ==="; try { (Invoke-WebRequest http://localhost/web/ -UseBasicParsing -TimeoutSec 5).StatusCode } catch { $_.Exception.Message }
+$ROOT="C:\ServerBox"; $nssm="$ROOT\install\nssm.exe"; $caddy="$ROOT\gateway\caddy.exe"
+@'
+:8080 {
+	handle_path /web/* {
+		root * ../apps/webapp
+		file_server
+	}
+	redir /web /web/ 308
+	handle_path /parts/* { reverse_proxy 127.0.0.1:8001 }
+	redir /parts /parts/ 308
+	handle { redir * /web/ 308 }
+}
+'@ | Set-Content "$ROOT\gateway\Caddyfile" -Encoding UTF8
+New-NetFirewallRule -DisplayName "ServerBox HTTP 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Any -ErrorAction SilentlyContinue | Out-Null
+Restart-Service ServerBox-Gateway
+Start-Sleep 3
+"=== 8080 포트 점유자 ==="
+$c = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
+if ($c) { (Get-Process -Id $c.OwningProcess).ProcessName + " (PID " + $c.OwningProcess + ")" } else { "(없음 — 로그 확인 필요)" }
+"=== localhost 테스트 ==="; try { (Invoke-WebRequest http://localhost:8080/web/ -UseBasicParsing -TimeoutSec 5).StatusCode } catch { $_.Exception.Message }
+"=== 접속 주소 ==="
+"http://" + (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*'} | Select -First 1).IPAddress + ":8080/web"
+
+Get-Content C:\ServerBox\logs\gateway.err.log -Tail 20
