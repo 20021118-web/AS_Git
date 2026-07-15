@@ -3,3 +3,8 @@ Set-Content C:\ServerBox\gateway\Caddyfile ":8080 {`n`thandle_path /web/* {`n`t`
 cd C:\ServerBox\gateway; .\caddy.exe run
 
 http://localhost:8080/web/
+
+
+Set-Content C:\ServerBox\gateway\Caddyfile ":8080 {`n`thandle_path /web/* {`n`t`troot * ../apps/webapp`n`t`tfile_server`n`t}`n`tredir /web /web/ 308`n}" -Encoding ascii
+.\caddy.exe run
+http://localhost:8080/web/
