@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+httpx
+opencv-python
+numpy
+pillow
+openpyxl
+openpyxl-image-loader
+rembg
+onnxruntime
