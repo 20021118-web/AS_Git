@@ -1,27 +1,6 @@
-$ROOT="C:\ServerBox"; $nssm="$ROOT\install\nssm.exe"; $caddy="$ROOT\gateway\caddy.exe"
-New-Item -ItemType Directory -Force "$ROOT\logs","$ROOT\gateway" | Out-Null
-if (-not (Test-Path "$ROOT\gateway\Caddyfile")) {
-@'
-:80 {
-	handle_path /web/* { root * ../apps/webapp
-		file_server }
-	redir /web /web/ 308
-	handle_path /parts/* { reverse_proxy 127.0.0.1:8001 }
-	redir /parts /parts/ 308
-	handle { redir * /web/ 308 }
-}
-'@ | Set-Content "$ROOT\gateway\Caddyfile" -Encoding UTF8 }
-if (Get-Service ServerBox-Gateway -ErrorAction SilentlyContinue) {
-  & $nssm stop ServerBox-Gateway 2>$null | Out-Null
-  & $nssm remove ServerBox-Gateway confirm 2>$null | Out-Null; Start-Sleep 1 }
-& $nssm install ServerBox-Gateway $caddy "run --config Caddyfile" 2>$null | Out-Null
-& $nssm set ServerBox-Gateway AppDirectory "$ROOT\gateway" 2>$null | Out-Null
-& $nssm set ServerBox-Gateway AppStdout "$ROOT\logs\gateway.log" 2>$null | Out-Null
-& $nssm set ServerBox-Gateway AppStderr "$ROOT\logs\gateway.err.log" 2>$null | Out-Null
-& $nssm set ServerBox-Gateway Start SERVICE_AUTO_START 2>$null | Out-Null
-& $nssm start ServerBox-Gateway 2>$null | Out-Null
-New-NetFirewallRule -DisplayName "ServerBox HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow -Profile Any -ErrorAction SilentlyContinue | Out-Null
-Start-Sleep 2; Get-Service ServerBox-Gateway
-"접속: http://" + (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*'} | Select -First 1).IPAddress + "/web"
-
-Test-Path C:\ServerBox\apps\webapp\index.html
+"=== 1. 서비스 상태 ==="; Get-Service ServerBox-Gateway | Format-List Name,Status
+"=== 2. 80포트 점유자 ==="
+$c = Get-NetTCPConnection -LocalPort 80 -State Listen -ErrorAction SilentlyContinue
+if ($c) { $c | ForEach-Object { (Get-Process -Id $_.OwningProcess).ProcessName + "  (PID " + $_.OwningProcess + ")" } } else { "(80포트를 듣는 프로세스 없음 = Caddy 미기동)" }
+"=== 3. Caddy 에러로그 ==="; Get-Content C:\ServerBox\logs\gateway.err.log -Tail 20 -ErrorAction SilentlyContinue
+"=== 4. localhost 테스트 ==="; try { (Invoke-WebRequest http://localhost/web/ -UseBasicParsing -TimeoutSec 5).StatusCode } catch { $_.Exception.Message }
