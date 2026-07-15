@@ -1,0 +1,30 @@
+# ServerBox 게이트웨이 — 주소를 이름으로 정리해 주는 리버스 프록시
+# 팀원은 포트 번호 없이  http://서버주소/web  처럼 접속한다.
+# 새 프로젝트를 추가하면 아래에 블록을 하나 더 붙이면 끝.
+
+:80 {
+	# ── /web : 부품 매칭 (브라우저 계산판, 파이썬 불필요) ──────────
+	#    기존 GitHub Pages 와 같은 코드. 서버는 파일만 내려주므로 램 거의 안 씀.
+	handle_path /web/* {
+		root * ../apps/webapp
+		file_server
+	}
+	redir /web /web/ 308
+
+	# ── /parts : 부품 매칭 (서버 계산판, 파이썬 필요 — 2단계 설치 후) ──
+	handle_path /parts/* {
+		reverse_proxy 127.0.0.1:8001
+	}
+	redir /parts /parts/ 308
+
+	# ── 새 프로젝트 추가 예시 ──────────────────────────────
+	# handle_path /project2/* {
+	# 	reverse_proxy 127.0.0.1:8002
+	# }
+	# redir /project2 /project2/ 308
+
+	# 루트 접속 시 /web 으로 이동
+	handle {
+		redir * /web/ 308
+	}
+}
