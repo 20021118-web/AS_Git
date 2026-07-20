@@ -4,7 +4,23 @@ cd C:\ServerBox\gateway; .\caddy.exe run
 
 http://localhost:8080/web/
 
+좋습니다! 이제 자동 시작 서비스로 등록하겠습니다. Caddy 포그라운드는 Ctrl+C로 멈춘 뒤, 아래를 한 줄씩 복사→붙여넣기→Enter 하세요.
 
-Set-Content C:\ServerBox\gateway\Caddyfile ":8080 {`n`thandle_path /web/* {`n`t`troot * ../apps/webapp`n`t`tfile_server`n`t}`n`tredir /web /web/ 308`n}" -Encoding ascii
-.\caddy.exe run
-http://localhost:8080/web/
+① 기존 등록 흔적 제거 (없으면 "Can't open service!" 떠도 정상 — 무시)
+C:\ServerBox\install\nssm.exe remove ServerBox-Gateway confirm
+② 서비스 등록
+C:\ServerBox\install\nssm.exe install ServerBox-Gateway C:\ServerBox\gateway\caddy.exe run
+③ 작업 폴더 지정 (Caddyfile·웹파일 경로 기준)
+C:\ServerBox\install\nssm.exe set ServerBox-Gateway AppDirectory C:\ServerBox\gateway
+④ 부팅 시 자동 시작
+C:\ServerBox\install\nssm.exe set ServerBox-Gateway Start SERVICE_AUTO_START
+⑤ 서비스 시작
+C:\ServerBox\install\nssm.exe start ServerBox-Gateway
+⑥ 방화벽 8080 열기
+New-NetFirewallRule -DisplayName "ServerBox 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Any -ErrorAction SilentlyContinue
+⑦ 확인 (서비스 상태 + 접속 테스트 + 공유용 IP)
+Start-Sleep 2; Get-Service ServerBox-Gateway; (Invoke-WebRequest http://localhost:8080/web/ -UseBasicParsing -TimeoutSec 5).StatusCode; "공유주소: http://" + (Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up'}).IPv4Address.IPAddress + ":8080/web/"
+확인 포인트
+⑤에서 ServerBox-Gateway 서비스를 시작했습니다 나오면 OK
+⑦에서 Status: Running + 200 + 공유주소: http://192.168.x.x:8080/web/ 가 뜨면 완료입니다.
+⑦의 공유주소가 팀원들이 접속할 진짜 주소입니다. (앞서 보였던 172.16.x.x는 가상 네트워크 어댑터일 수 있어서, 실제 사내망 IP를 다시 뽑도록 명령을 바꿨습니다.)
