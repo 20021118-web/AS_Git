@@ -26,6 +26,40 @@ C:\ServerBox\install\nssm.exe start ServerBox-Gateway
 Start-Sleep 2; Get-Service ServerBox-Gateway; (Invoke-WebRequest http://localhost:8080/web/ -UseBasicParsing -TimeoutSec 5).StatusCode; "공유주소: http://" + (Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up'}).IPv4Address.IPAddress + ":8080/web/"
 → Status: Running + 200 + 공유주소: http://…:8080/web/ 나오면 완료입니다.
 
+1) 잠금 유발 창 닫기 (중요)
+아래가 열려 있으면 모두 닫으세요:
+
+서비스(services.msc) 창
+작업 관리자의 "서비스" 탭
+이벤트 뷰어
+2) 남은 프로세스 정리 — 한 줄
+Stop-Process -Name caddy,nssm -Force -ErrorAction SilentlyContinue
+3) 서비스 완전 삭제 — 한 줄
+sc.exe delete ServerBox-Gateway
+→ 성공 또는 지정된 서비스가 설치되어 있지 않습니다 가 나오면 OK.
+→ 여기서도 "삭제 대기"가 또 나오면 → 아래 [재부팅 방법] 으로 가세요.
+
+4) 삭제 확인 — 한 줄 (아무것도 안 나와야 정상)
+Get-Service ServerBox-Gateway -ErrorAction SilentlyContinue
+5) 다시 등록 — 한 줄씩
+C:\ServerBox\install\nssm.exe install ServerBox-Gateway C:\ServerBox\gateway\caddy.exe run
+C:\ServerBox\install\nssm.exe set ServerBox-Gateway AppDirectory C:\ServerBox\gateway
+C:\ServerBox\install\nssm.exe set ServerBox-Gateway Start SERVICE_AUTO_START
+C:\ServerBox\install\nssm.exe start ServerBox-Gateway
+6) 확인 — 한 줄
+Start-Sleep 2; Get-Service ServerBox-Gateway; (Invoke-WebRequest http://localhost:8080/web/ -UseBasicParsing -TimeoutSec 5).StatusCode
+→ Running + 200 이면 완료!
+
+[재부팅 방법] — 3번에서 또 "삭제 대기"가 나오면
+가장 확실한 방법입니다:
+
+서버 PC 재부팅 (재부팅하면 "삭제 대기" 서비스가 완전히 사라집니다)
+부팅 후 관리자 PowerShell 다시 열기
+위 5) 등록 4줄 → 6) 확인 만 실행 (2·3·4는 건너뛰어도 됨)
+재부팅은 어차피 "재부팅해도 자동 시작되나" 테스트도 겸하니 한 번 해두면 좋습니다.
+
+3번 결과(성공/삭제대기 중 무엇인지)를 알려주시면 거기서 이어가겠습니다.
+
 ③에서 또 "액세스 거부"가 뜨면 창이 관리자가 아닌 것이니, 2)의 확인 명령이 True인지 먼저 봐주세요. 결과 알려주시면 다음 단계(팀원 공유 안내) 정리해 드리겠습니다.
 
 ③에서 또 "액세스 거부"가 뜨면 창이 관리자가 아닌 것이니, 2)의 확인 명령이 True인지 먼저 봐주세요. 결과 알려주시면 다음 단계(팀원 공유 안내) 정리해 드리겠습니다.
