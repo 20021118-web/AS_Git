@@ -5,3 +5,18 @@ cd <압축 푼 폴더>
 powershell -ExecutionPolicy Bypass -File .\apply.ps1
 마지막에 Status : Running과 함께 완료 메시지가 나오면 업무 PC 브라우저에서 접속해 "⚡ AI 유사도 매칭" 체크박스가 보이는지 확인하면 끝입니다.
 스크립트는 복사 후 임포트가 실패하면 서비스 재시작을 하지 않고 멈추게 해뒀고, 기존 파일은 backup_날짜시간 폴더에 백업되니 문제가 생겨도 되돌릴 수 있습니다. 참고로 지난번처럼 Restart-Service에서 OpenError가 나면 그건 관리자 권한이 아닌 창에서 실행한 것이니 꼭 관리자 PowerShell로 실행하세요.
+
+
+Stop-Service ServerBox-Parts -Force
+Start-Service ServerBox-Parts
+Start-Sleep 5
+Get-Service ServerBox-Parts
+Running이 나오면 실제 동작 확인:
+
+curl.exe http://127.0.0.1:8001/api/health
+{"ok":true,...}가 나오면 정상입니다.
+
+그래도 다시 Paused가 되면 앱이 시작하자마자 죽고 있는 것이니 로그를 봐야 합니다:
+
+Get-Content C:\ServerBox\logs\parts*.log -Tail 30
+(로그 폴더가 없으면 C:\ServerBox 아래에서 dir /s *.log로 찾아보세요.) 마지막 30줄에 찍힌 에러(Traceback)를 사진으로 보여주시면 바로 원인 짚어드릴게요.
