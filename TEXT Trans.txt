@@ -1,65 +1,32 @@
-Set-Content C:\ServerBox\gateway\Caddyfile ":8080 {`n`thandle_path /web/* {`n`t`troot * ../apps/webapp`n`t`tfile_server`n`t}`n`tredir /web /web/ 308`n`thandle { redir * /web/ 308 }`n}" -Encoding ascii
+0) 부품 앱 파일 확인 (True 나와야 함)
+Test-Path C:\ServerBox\apps\parts\main.py
+False면 파일 복사가 덜 된 것 — 알려주세요.
 
-cd C:\ServerBox\gateway; .\caddy.exe run
+1) 파이썬 있는지 확인
+python --version
+Python 3.11.x(또는 3.10+) 나오면 → 3번으로 건너뛰기
+"인식되지 않습니다" 나오면 → 2번 진행
+2) 파이썬 설치 (없을 때만)
+winget install -e --id Python.Python.3.11 --accept-source-agreements --accept-package-agreements
+설치 끝나면 이 관리자 창을 닫고, 관리자 PowerShell을 새로 여세요 (PATH 갱신). 그다음:
 
-http://localhost:8080/web/
+python --version
+Python 3.11.x 확인.
 
-좋습니다! 이제 자동 시작 서비스로 등록하겠습니다. Caddy 포그라운드는 Ctrl+C로 멈춘 뒤, 아래를 한 줄씩 복사→붙여넣기→Enter 하세요.
+winget 자체가 "인식 안 됨"이면 알려주세요 — python.org 설치 파일 방법을 드리겠습니다.
 
-3) 서비스 등록 — 한 줄씩 붙여넣기
-기존 것 제거 (없으면 "Can't open service!" 떠도 무시):
+3) 가상환경 만들기
+python -m venv C:\ServerBox\venvs\parts
+4) pip 최신화
+C:\ServerBox\venvs\parts\Scripts\python.exe -m pip install --upgrade pip
+5) 패키지 설치 (수 분 소요 — 인터넷 다운로드 많음, 기다리세요)
+C:\ServerBox\venvs\parts\Scripts\python.exe -m pip install -r C:\ServerBox\apps\parts\requirements.txt
+→ 마지막에 Successfully installed ... 가 나오면 성공. (빨간 오류로 끝나면 그 내용을 알려주세요)
 
-C:\ServerBox\install\nssm.exe remove ServerBox-Gateway confirm
-등록:
+6) 서버 엔진 직접 실행해서 테스트 (한 줄)
+C:\ServerBox\venvs\parts\Scripts\python.exe -m uvicorn main:app --app-dir C:\ServerBox\apps\parts --host 127.0.0.1 --port 8001
+→ Uvicorn running on http://127.0.0.1:8001 가 뜨고 멈춘 상태가 되면 정상입니다.
+그 상태로 서버 PC 브라우저에서 열기:
 
-C:\ServerBox\install\nssm.exe install ServerBox-Gateway C:\ServerBox\gateway\caddy.exe run
-작업 폴더 지정:
-
-C:\ServerBox\install\nssm.exe set ServerBox-Gateway AppDirectory C:\ServerBox\gateway
-자동 시작:
-
-C:\ServerBox\install\nssm.exe set ServerBox-Gateway Start SERVICE_AUTO_START
-시작:
-
-C:\ServerBox\install\nssm.exe start ServerBox-Gateway
-4) 확인
-Start-Sleep 2; Get-Service ServerBox-Gateway; (Invoke-WebRequest http://localhost:8080/web/ -UseBasicParsing -TimeoutSec 5).StatusCode; "공유주소: http://" + (Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up'}).IPv4Address.IPAddress + ":8080/web/"
-→ Status: Running + 200 + 공유주소: http://…:8080/web/ 나오면 완료입니다.
-
-1) 잠금 유발 창 닫기 (중요)
-아래가 열려 있으면 모두 닫으세요:
-
-서비스(services.msc) 창
-작업 관리자의 "서비스" 탭
-이벤트 뷰어
-2) 남은 프로세스 정리 — 한 줄
-Stop-Process -Name caddy,nssm -Force -ErrorAction SilentlyContinue
-3) 서비스 완전 삭제 — 한 줄
-sc.exe delete ServerBox-Gateway
-→ 성공 또는 지정된 서비스가 설치되어 있지 않습니다 가 나오면 OK.
-→ 여기서도 "삭제 대기"가 또 나오면 → 아래 [재부팅 방법] 으로 가세요.
-
-4) 삭제 확인 — 한 줄 (아무것도 안 나와야 정상)
-Get-Service ServerBox-Gateway -ErrorAction SilentlyContinue
-5) 다시 등록 — 한 줄씩
-C:\ServerBox\install\nssm.exe install ServerBox-Gateway C:\ServerBox\gateway\caddy.exe run
-C:\ServerBox\install\nssm.exe set ServerBox-Gateway AppDirectory C:\ServerBox\gateway
-C:\ServerBox\install\nssm.exe set ServerBox-Gateway Start SERVICE_AUTO_START
-C:\ServerBox\install\nssm.exe start ServerBox-Gateway
-6) 확인 — 한 줄
-Start-Sleep 2; Get-Service ServerBox-Gateway; (Invoke-WebRequest http://localhost:8080/web/ -UseBasicParsing -TimeoutSec 5).StatusCode
-→ Running + 200 이면 완료!
-
-[재부팅 방법] — 3번에서 또 "삭제 대기"가 나오면
-가장 확실한 방법입니다:
-
-서버 PC 재부팅 (재부팅하면 "삭제 대기" 서비스가 완전히 사라집니다)
-부팅 후 관리자 PowerShell 다시 열기
-위 5) 등록 4줄 → 6) 확인 만 실행 (2·3·4는 건너뛰어도 됨)
-재부팅은 어차피 "재부팅해도 자동 시작되나" 테스트도 겸하니 한 번 해두면 좋습니다.
-
-3번 결과(성공/삭제대기 중 무엇인지)를 알려주시면 거기서 이어가겠습니다.
-
-③에서 또 "액세스 거부"가 뜨면 창이 관리자가 아닌 것이니, 2)의 확인 명령이 True인지 먼저 봐주세요. 결과 알려주시면 다음 단계(팀원 공유 안내) 정리해 드리겠습니다.
-
-③에서 또 "액세스 거부"가 뜨면 창이 관리자가 아닌 것이니, 2)의 확인 명령이 True인지 먼저 봐주세요. 결과 알려주시면 다음 단계(팀원 공유 안내) 정리해 드리겠습니다.
+http://localhost:8001/
+부품 매칭 화면(서버판) 이 뜨면 성공 → 터미널에서 Ctrl+C 로 멈추고 알려주세요.
