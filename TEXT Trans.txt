@@ -20,3 +20,5 @@ curl.exe http://127.0.0.1:8001/api/health
 
 Get-Content C:\ServerBox\logs\parts*.log -Tail 30
 (로그 폴더가 없으면 C:\ServerBox 아래에서 dir /s *.log로 찾아보세요.) 마지막 30줄에 찍힌 에러(Traceback)를 사진으로 보여주시면 바로 원인 짚어드릴게요.
+cd <다운로드 폴더>
+powershell -ExecutionPolicy Bypass -File .\join_u2net.ps1
