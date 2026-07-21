@@ -1,24 +1,4 @@
-# ① 모델 파일이 시스템 계정 폴더에 실제로 들어갔는지
-Test-Path C:\Windows\System32\config\systemprofile\.u2net\u2net.onnx
+server_update_20260721.zip — 아침과 동일하게 GitHub 업로드 → 서버에서 다운로드 → 관리자 PowerShell에서:
 
-# ② 서비스가 어떤 계정으로 도는지 (SERVICE_START_NAME 줄 확인)
-sc.exe qc ServerBox-Parts
-
-# ③ 서비스가 진짜 재시작됐는지
-Get-Service ServerBox-Parts
-결과를 보여주시면 정확히 알 수 있는데, 그와 별개로 계정이 뭐든 무조건 찾게 만드는 확실한 방법을 바로 적용하는 게 낫겠습니다. rembg는 U2NET_HOME이라는 환경변수가 있으면 그 폴더에서 모델을 찾거든요. 서버 관리자 PowerShell에서:
-
-# 모델을 중립 위치로 복사
-New-Item -ItemType Directory -Force C:\ServerBox\models | Out-Null
-Copy-Item C:\Users\양산개발팀\.u2net\u2net.onnx C:\ServerBox\models\ -Force
-
-# 시스템 전체 환경변수로 지정 (어떤 계정이든 여기서 찾음)
-[Environment]::SetEnvironmentVariable('U2NET_HOME','C:\ServerBox\models','Machine')
-
-# 서비스 재시작 (환경변수를 새로 읽도록)
-Stop-Service ServerBox-Parts -Force
-Start-Service ServerBox-Parts
-Get-Service ServerBox-Parts
-그리고 웹 화면을 Ctrl+F5로 새로고침한 뒤 "AI 배경 제거 사용" 켜고 다시 1건만 내보내기 해보세요.
-
-한 가지 더: 방금 멈춘 내보내기 작업은 서버 안에서 스레드로 계속 매달려 있을 수 있는데, 위의 서비스 재시작이 그것도 함께 정리합니다. 재시작 후에도 또 첫 장에서 멈추면 ①~③ 결과를 사진으로 보여주세요 — 그럼 정확한 지점을 짚어드리겠습니다.
+powershell -ExecutionPolicy Bypass -File .\apply.ps1
+5개 파일(main.py·engine.py·app.js·index.html·styles.css) 백업·복사·문법검사·재시작까지 자동입니다. 적용 후 브라우저 Ctrl+F5 하고 배경 제거를 다시 돌리면, 우측 진단 로그에서 정확히 어디서 무슨 일이 일어나는지 실시간으로 보입니다 — 이번엔 멈추지 않고 처리되거나, 멈추더라도 원인이 로그에 찍힙니다.
