@@ -1,4 +1,20 @@
-server_update_20260721.zip — 아침과 동일하게 GitHub 업로드 → 서버에서 다운로드 → 관리자 PowerShell에서:
+@'
+import traceback
+try:
+    import rembg
+    print("OK", rembg.__version__)
+except BaseException:
+    traceback.print_exc()
+'@ | Set-Content C:\ServerBox\diag_rembg.py -Encoding utf8
 
-powershell -ExecutionPolicy Bypass -File .\apply.ps1
-5개 파일(main.py·engine.py·app.js·index.html·styles.css) 백업·복사·문법검사·재시작까지 자동입니다. 적용 후 브라우저 Ctrl+F5 하고 배경 제거를 다시 돌리면, 우측 진단 로그에서 정확히 어디서 무슨 일이 일어나는지 실시간으로 보입니다 — 이번엔 멈추지 않고 처리되거나, 멈추더라도 원인이 로그에 찍힙니다.
+C:\ServerBox\venvs\parts\Scripts\python.exe C:\ServerBox\diag_rembg.py
+이러면 rembg를 그 서버의 실제 파이썬 환경에서 그대로 임포트해보고, 어디서 SystemExit이 나는지 전체 traceback을 화면에 뿌려줍니다. 그 출력(특히 마지막 File ... line ... 줄들)을 사진으로 보여주세요.
+
+예상되는 것들:
+
+onnxruntime DLL 로드 실패 (서버에 Visual C++ 재배포 패키지 없음) → VC++ 런타임 설치로 해결
+rembg/onnxruntime 버전 충돌 → 해당 venv에 재설치
+의존 패키지 하나가 반쯤 설치됨 → 재설치
+traceback을 보면 이 셋 중 뭔지 바로 갈립니다.
+
+참고 — 배경 제거를 서버에서 하는 건 여전히 가능합니다. rembg는 서버에 이미 깔려는 있는데 임포트 단계에서 뭔가 하나가 어긋나 있을 뿐이에요. 원인 모듈만 확인되면 그 부분만 재설치/수정하면 됩니다. python diag_rembg.py 출력만 보여주시면 정확한 복구 명령을 드리겠습니다.
